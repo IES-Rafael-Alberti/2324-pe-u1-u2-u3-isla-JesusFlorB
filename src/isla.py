@@ -115,12 +115,11 @@ def inicializar_juego() -> tuple:
     Inicializa el juego, mostrando el mapa y la posición del jugador.
     :return: El mapa y la posición del jugador.
     """
-    posicion_jugador = posicion_inicial_del_jugador()
-    mapa = generar_mapa()
+    mapa, posicion_jugador = generar_mapa(), posicion_inicial_del_jugador()
     while mapa[posicion_jugador[FILAS]][posicion_jugador[COLUMNAS]] == CELDA_TESORO:
-        mapa = generar_mapa()
-
+        mapa, posicion_jugador = generar_mapa(), posicion_inicial_del_jugador()
     return mapa, posicion_jugador
+    
 
 
 def posicion_inicial_del_jugador() -> tuple:
@@ -148,19 +147,26 @@ def generar_mapa() -> list:
     tesoro_x, tesoro_y = random.randint(0, DIMENSIONES - 1), random.randint(0, DIMENSIONES - 1)
     mapa[tesoro_x][tesoro_y] = CELDA_TESORO
 
+    #Evitar pista y trampa en lugar de inicio
+    jugador_x, jugador_y = DIMENSIONES // 2, DIMENSIONES // 2
+    mapa[jugador_x][jugador_y] = CELDA_VACIA
+
     # Colocar pistas y trampas
-    ???
-            if mapa[i][j] != CELDA_TESORO:
+    for i in range(DIMENSIONES):
+        for j in range(DIMENSIONES):
+            if (i, j) != (tesoro_x, tesoro_y) and (i, j) != (jugador_x, jugador_y):
+                if mapa[i][j] != CELDA_TESORO:
+                
                 # Decidir aleatoriamente si colocar una pista, una trampa o vacia.
-                opciones = [genera_pista((tesoro_x, tesoro_y), (i, j))]
-                opciones += [CELDA_TRAMPA]
-                opciones += [CELDA_VACIA]
-                mapa[i][j] = random.choice(opciones)
+                    opciones = [genera_pista((tesoro_x, tesoro_y), (i, j))]
+                    opciones += [CELDA_TRAMPA]
+                    opciones += [CELDA_VACIA]
+                    mapa[i][j] = random.choice(opciones)
 
     return mapa
 
 
-def genera_pista():
+def genera_pista(posicion_tesoro, posicion):
     """
     Genera una pista para el mapa, en función de donde se encuentre el tesoro.
     Decidirá si la pista es sobre la fila o la columna basada en la aleatoriedad. Ademas tiene en cuenta que
@@ -208,23 +214,21 @@ def pedir_movimiento(mapa: list) -> str:
     Pide al jugador su próximo movimiento y devuelve las coordenadas de desplazamiento.
     return: el movimiento del jugador
     """
+    movimientos_validos = ['u', 'd', 'l', 'r', 'q']
     entrada_correcta = False
-
-    entrada = int(input("Ingresa tu movimiento (formato: 'u:arriba', 'd:abajo', 'l:izquierda', 'r:derecha', q:salir): "))
+    
     while not entrada_correcta:
-        if entrada in MOVIMIENTOS:
+        entrada = input("Ingresa tu movimiento (formato: 'u:arriba', 'd:abajo', 'l:izquierda', 'r:derecha', q:salir): ")
+        movimiento = entrada.split(':')
+        
+        if len(movimiento) == [1] and movimiento[0] in movimientos_validos:
             entrada_correcta = True
-        elif entrada == CODIGO_OCULTO_PROGRAMADOR:
-            imprimir_mapa(mapa)
-
-        if not entrada_correcta:
-            entrada = int(input(
-                "Ingresa tu movimiento (formato: 'u:arriba', 'd:abajo', 'l:izquierda', 'r:derecha', q:salir): "))
-
-    return entrada
+            return movimiento[0]
+        
+        print("Movimiento inválido. Formato incorrecto.")
 
 
-def obtener_nueva_posicion(posicion_jugador: tuple, movimiento: str) -> tuple:
+def obtener_nueva_posicion(posicion_jugador: tuple, movimiento: tuple) -> str:
     """
     Realiza el movimiento del jugador y devuelve la nueva posición.
 
@@ -261,9 +265,9 @@ def procesar_movimiento(posicion: tuple, mapa: list) -> int:
 
 def simbolo_celda(celda):
     """Retorna el símbolo a pintar en la celda"""
-    if celda != CELDA_VACIA
+    if celda != CELDA_VACIA:
         return DESCONOCIDO
-    else
+    else:
         return CELDA_VACIA 
 
 
@@ -279,7 +283,7 @@ def imprimir_mapa(mapa: list):
     :param mapa: El mapa a imprimir.
     """
     for fila in mapa:
-        print fila
+        return fila
 
 
 def muestra_resultado_del_movimiento(resultado: int, nueva_posicion: tuple, mapa: list):
@@ -314,25 +318,34 @@ def jugar():
     # Iniciar el mapa y al jugador en el centro del mapa
     mapa, posicion_jugador = inicializar_juego()
     muestra_estado_mapa(mapa, posicion_jugador)
-
-    movimiento = pedir_movimiento(mapa)
     resultado_movimiento = None
-    # Loop principal del juego. El juego termina cuando el jugador realizar movimiento SALIR.
-    while movimiento != SALIR and resultado_movimiento == TESORO_ENCONTRADO:
+    juego_terminado = False
 
+    while not juego_terminado:
+        movimiento = pedir_movimiento(mapa)
+
+    # Loop principal del juego. El juego termina cuando el jugador realizar movimiento SALIR.
+    if movimiento == SALIR:
+        juego_terminado = True
+    else:
         # Obtener la nueva posición del jugador y procesar el movimiento
-        nueva_posicion = obtener_nueva_posicion(posicion_jugador)
+        nueva_posicion = obtener_nueva_posicion(posicion_jugador, movimiento)
         resultado_movimiento = procesar_movimiento(nueva_posicion, mapa)
 
         muestra_resultado_del_movimiento(resultado_movimiento, nueva_posicion, mapa)
-
-        if resultado_movimiento != TESORO_ENCONTRADO:
-            # Actualizar la posición del jugador si el movimiento es válido
-            if resultado_movimiento not in MOVIMIENTOS_NO_PERMITIDO:
+        if resultado_movimiento not in MOVIMIENTOS_NO_PERMITIDO:
                 posicion_jugador = nueva_posicion
+            
+        # Actualizar la posición del jugador si el movimiento es válido
+        muestra_estado_mapa(mapa, posicion_jugador)
 
-            muestra_estado_mapa(mapa, posicion_jugador)
-            movimiento = pedir_movimiento(mapa)
+        if resultado_movimiento == TESORO_ENCONTRADO:
+            juego_terminado = True
+
+    if resultado_movimiento == TESORO_ENCONTRADO:
+        print("Has ganado")
+    else:
+        print("Has perdido")
 
 
 if __name__ == "__main__":
